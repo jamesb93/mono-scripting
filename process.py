@@ -1,25 +1,19 @@
-import xml.etree.ElementTree as ET
-from pathlib import Path
 import gzip
+from pathlib import Path
 import os
+import xml.etree.ElementTree as ET
 
-presets_repo_path = Path("./Mono One")
-amxd_path = presets_repo_path / "Mono One.amxd"
-presets = presets_repo_path / "Presets"
-test_preset = presets / "elphnt" / "Bass" / "Choker.adv"
-
-def process_adv_preset(preset_path: str):
+def process_adv_preset(preset_path: Path, amxd_path: Path):
     with gzip.open(preset_path, 'rb') as f:
         xml_content = f.read()
         
     root = ET.fromstring(xml_content)
-
-    rel_path = os.path.relpath(amxd_path, test_preset.parent)
+    rel_path = os.path.relpath(amxd_path, preset_path.parent)
 
     for patch_slot in root.findall(".//PatchSlot"):
         for fileref in patch_slot.findall(".//FileRef"):
             for rel_path_type in fileref.findall(".//RelativePathType"):
-                rel_path_type.set("Value", "1")  # Relative path mode
+                rel_path_type.set("Value", "1")
             for path_elem in fileref.findall(".//Path"):
                 path_elem.set("Value", "")
             for rel_path_elem in fileref.findall(".//RelativePath"):
@@ -27,6 +21,5 @@ def process_adv_preset(preset_path: str):
 
     xml_output = '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding='unicode')
 
-    modified_preset = test_preset.with_name(test_preset.stem + "_modified.adv")
-    with gzip.open(modified_preset, 'wb') as f:
+    with gzip.open(preset_path.with_name(preset_path.stem + "_modified.adv"), 'wb') as f:
         f.write(xml_output.encode('utf-8'))
